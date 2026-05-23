@@ -106,9 +106,9 @@ const AdminDashboard = () => {
     loadLeaflet().catch(() => {});
   }, [locations]);
 
-  const handleAdminLogin = async (user: string, pass: string) => {
+  const handleAdminLogin = async (pin: string) => {
     try {
-      const res = await fetch('http://localhost:4000/api/admin/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ user, pass }) });
+      const res = await fetch('http://localhost:4000/api/admin/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ pin }) });
       if (!res.ok) throw new Error('auth failed');
       const json = await res.json();
       const token = json.token;
@@ -232,17 +232,16 @@ function ReplyBox({ recipient, onSend }: { recipient: string; onSend: (t: string
   );
 }
 
-function AdminLogin({ onLogin }: { onLogin: (u: string, p: string) => void }) {
-  const [user, setUser] = useState('admin@novamart.com');
-  const [pass, setPass] = useState('');
+function AdminLogin({ onLogin }: { onLogin: (pin: string) => void }) {
+  const [pin, setPin] = useState('');
   return (
     <div style={{ padding: '.5rem', border: '1px solid #eee' }}>
-      <div style={{ display: 'flex', gap: '.5rem', marginBottom: '.5rem' }}>
-        <input value={user} onChange={(e) => setUser(e.target.value)} style={{ width: 300 }} />
-        <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} style={{ width: 300 }} placeholder="admin password" />
+      <div style={{ display: 'flex', gap: '.5rem', marginBottom: '.5rem', alignItems: 'center' }}>
+        <label style={{ fontWeight:700 }}>Admin PIN:</label>
+        <input value={pin} onChange={(e) => setPin(e.target.value)} style={{ width: 220 }} placeholder="Enter 4-digit PIN" />
       </div>
       <div>
-        <button className="btn" onClick={() => onLogin(user, pass)}>Authenticate</button>
+        <button className="btn" onClick={() => onLogin(pin)}>Authenticate</button>
       </div>
     </div>
   );
