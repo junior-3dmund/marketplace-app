@@ -23,6 +23,20 @@ const Header = () => {
     window.location.reload();
   };
 
+  useEffect(() => {
+    const theme = localStorage.getItem('theme') || 'sea';
+    document.body.classList.toggle('theme-sea', theme === 'sea');
+    document.body.classList.toggle('theme-light', theme === 'light');
+  }, []);
+
+  const toggleTheme = () => {
+    const currentTheme = localStorage.getItem('theme') || 'sea';
+    const next = currentTheme === 'sea' ? 'light' : 'sea';
+    localStorage.setItem('theme', next);
+    document.body.classList.toggle('theme-sea', next === 'sea');
+    document.body.classList.toggle('theme-light', next === 'light');
+  };
+
   return (
   <header className="site-header">
     <div className="site-brand">
@@ -50,14 +64,17 @@ const Header = () => {
         {!current && <Link to="/register">Register</Link>}
         {current && current.role === 'admin' && <Link to="/admin">Admin</Link>}
       </nav>
-      {current ? (
-        <div style={{ display: 'flex', gap: '.5rem' }}>
-          <span>Hi, {current.username}</span>
-          <button className="btn" onClick={handleLogout}>Logout</button>
-        </div>
-      ) : (
-        <Link className="btn btn-secondary" to="/create-listing">Sell a product</Link>
-      )}
+      <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center' }}>
+        <button className="btn" onClick={toggleTheme} title="Toggle theme">Theme</button>
+        {current ? (
+          <>
+            <span>Hi, {current.username}</span>
+            <button className="btn" onClick={handleLogout}>Logout</button>
+          </>
+        ) : (
+          <Link className="btn btn-secondary" to="/create-listing">Sell a product</Link>
+        )}
+      </div>
     </header>
   );
 };

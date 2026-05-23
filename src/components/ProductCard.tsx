@@ -19,6 +19,7 @@ const ProductCard = ({ product, onOpen }: Props) => {
         </div>
         <h3 className="product-title">{product.name}</h3>
         <p className="product-description">{product.description}</p>
+        <div className="seller-badge">{product.sellerType}</div>
         <div className="product-meta">
           <span>{product.location}</span>
           <span>{product.sellerType}</span>
