@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { auth } from '../utils/auth';
 
 const Login = () => {
@@ -15,21 +15,6 @@ const Login = () => {
       navigate('/');
     } catch (err) {
       setError((err as Error).message);
-    }
-  };
-
-  const recoverPassword = () => {
-    const identifierValue = window.prompt('Enter your username, email, or phone number to reset password');
-    if (!identifierValue) return;
-    const newPassword = window.prompt('Enter your new password');
-    if (!newPassword) {
-      return;
-    }
-    try {
-      auth.forgotPassword(identifierValue.trim(), newPassword);
-      alert('Password updated. You can now sign in with the new password.');
-    } catch (err) {
-      alert((err as Error).message || 'Unable to reset password.');
     }
   };
 
@@ -50,13 +35,11 @@ const Login = () => {
             onChange={(e) => setPassword(e.target.value)}
           />
           {error && <div style={{ color: 'crimson' }}>{error}</div>}
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <button className="btn" type="submit">Sign in</button>
             <button className="btn btn-secondary" type="button" onClick={() => navigate('/register')}>Register</button>
+            <Link className="btn btn-secondary" to="/forgot-password">Forgot password?</Link>
           </div>
-          <button type="button" className="btn btn-secondary" onClick={recoverPassword}>
-            Forgot password?
-          </button>
         </form>
       </section>
     </main>

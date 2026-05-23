@@ -8,6 +8,7 @@ import CartPage from './pages/CartPage';
 import Checkout from './pages/Checkout';
 import AdminDashboard from './pages/AdminDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
+import ForgotPassword from './pages/ForgotPassword';
 import HelpCenter from './pages/HelpCenter';
 import Home from './pages/Home';
 import ProductDetail from './pages/ProductDetail';
@@ -63,6 +64,7 @@ const App = () => (
           />
           <Route path="/categories/:category" element={<CategoryPage />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/register" element={<Register />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<Checkout />} />

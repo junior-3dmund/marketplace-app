@@ -24,11 +24,9 @@ const AdminDashboard = () => {
       setTransactions([]);
     }
     (async () => {
-      const headers: any = {};
-      if (authHeader) headers.authorization = authHeader;
       try {
-        // fetch locations (admin-protected)
-        const res = await fetch('http://localhost:4000/api/locations', { headers });
+        // fetch locations (no auth required)
+        const res = await fetch('http://localhost:4000/api/locations');
         if (res.ok) {
           const data = await res.json();
           if (mounted) setLocations(data || []);
@@ -41,6 +39,8 @@ const AdminDashboard = () => {
         if (mounted) setLocations(l ? JSON.parse(l) : []);
       }
 
+      const headers: any = {};
+      if (authHeader) headers.authorization = authHeader;
       try {
         const res2 = await fetch('http://localhost:4000/api/messages', { headers });
         if (res2.ok) {

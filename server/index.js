@@ -48,8 +48,8 @@ app.post('/api/admin/login', (req, res) => {
   return res.status(401).json({ error: 'invalid_credentials' });
 });
 
-// Locations
-app.get('/api/locations', requireAdmin, (req, res) => {
+// Locations - GET is public (no auth for map), POST requires no auth (user posts own location)
+app.get('/api/locations', (req, res) => {
   const data = readData();
   res.json(data.locations || []);
 });
