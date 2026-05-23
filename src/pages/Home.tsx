@@ -79,14 +79,22 @@ const Home = () => {
   return (
     <main>
       <section className="hero-panel">
-        <div>
+        <div className="left">
           <span className="eyebrow">Local marketplace</span>
           <h2>Shop the best deals from sellers across Ghana</h2>
           <p>
             Browse verified listings for phones, electronics, motors, fashion, home goods, and more.
             Search, filter, and contact sellers in a clean local marketplace experience.
           </p>
-          <SearchBar query={query} onQueryChange={setQuery} />
+
+          <div className="search">
+            <SearchBar query={query} onQueryChange={setQuery} />
+            <div style={{ marginTop: '0.6rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {categories.slice(0, 6).map((c) => (
+                <button key={c} className="pill" style={{ cursor: 'pointer' }} onClick={() => setCategory(c)}>{c}</button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="hero-cards">
