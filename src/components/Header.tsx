@@ -32,6 +32,13 @@ const Header = () => {
         <h1>Buy and sell locally — Nova Mart</h1>
       </div>
     </div>
+    <div style={{ flex: 1, margin: '0 1rem' }}>
+      <div style={{ display: 'flex' }}>
+        <input placeholder="Search products, brands and categories" style={{ flex: 1, padding: '.5rem', borderRadius: '4px 0 0 4px', border: '1px solid #ddd' }} />
+        <button className="btn" style={{ borderRadius: '0 4px 4px 0' }}>Search</button>
+      </div>
+      <div style={{ fontSize: '.85rem', color: '#666', marginTop: '.25rem' }}>Categories: Electronics • Fashion • Home • Vehicles</div>
+    </div>
       <nav className="nav-links">
         <Link to="/">Home</Link>
         <Link to="/sellers">Sellers</Link>

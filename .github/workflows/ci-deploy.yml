@@ -1,0 +1,34 @@
+name: CI Build and Deploy
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Build frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install frontend deps
+        run: npm ci
+      - name: Build frontend
+        run: npm run build
+
+  deploy:
+    name: Optional deploy to Render
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ secrets.RENDER_SERVICE_ID && secrets.RENDER_API_KEY }}
+    steps:
+      - name: Trigger Render deploy
+        run: |
+          echo "Triggering Render deploy for service $RENDER_SERVICE_ID"
+          curl -X POST \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys -d '{}'
