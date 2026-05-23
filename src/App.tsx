@@ -7,6 +7,7 @@ import EditListing from './pages/EditListing';
 import CartPage from './pages/CartPage';
 import Checkout from './pages/Checkout';
 import AdminDashboard from './pages/AdminDashboard';
+import BuyerDashboard from './pages/BuyerDashboard';
 import HelpCenter from './pages/HelpCenter';
 import Home from './pages/Home';
 import ProductDetail from './pages/ProductDetail';
@@ -65,6 +66,14 @@ const App = () => (
           <Route path="/register" element={<Register />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route
+            path="/buyer"
+            element={
+              <ProtectedRoute allowedRoles={["buyer", "admin"]}>
+                <BuyerDashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/admin"
             element={

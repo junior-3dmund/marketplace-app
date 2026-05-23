@@ -24,10 +24,10 @@ const AdminDashboard = () => {
       setTransactions([]);
     }
     (async () => {
+      const headers: any = {};
+      if (authHeader) headers.authorization = authHeader;
       try {
         // fetch locations (admin-protected)
-        const headers: any = {};
-        if (authHeader) headers.authorization = authHeader;
         const res = await fetch('http://localhost:4000/api/locations', { headers });
         if (res.ok) {
           const data = await res.json();

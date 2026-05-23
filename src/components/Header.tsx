@@ -60,6 +60,7 @@ const Header = () => {
         <Link to="/p/p01">Featured</Link>
         <Link to="/cart">Cart</Link>
         <Link to="/help">Help Center</Link>
+        {current && (current.role === 'buyer' || current.role === 'admin') && <Link to="/buyer">Buyer</Link>}
         {!current && <Link to="/login">Sign in</Link>}
         {!current && <Link to="/register">Register</Link>}
         {current && current.role === 'admin' && <Link to="/admin">Admin</Link>}
