@@ -6,7 +6,6 @@ const AdminDashboard = () => {
   const [locations, setLocations] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [authHeader, setAuthHeader] = useState<string | null>(sessionStorage.getItem('admin_auth'));
-  const [apiKey, setApiKey] = useState<string | null>(sessionStorage.getItem('GMAPS_API_KEY'));
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
 
@@ -60,57 +59,66 @@ const AdminDashboard = () => {
   }, []);
 
   useEffect(() => {
-    // initialize map when locations or apiKey change
-    if (!apiKey || !locations || locations.length === 0) return;
-    const loadMap = async () => {
-      if (!(window as any).google) {
+    // initialize map when locations change (using Leaflet + OpenStreetMap)
+    if (!locations || locations.length === 0) return;
+    const loadLeaflet = async () => {
+      if (!(window as any).L) {
+        // load CSS
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+        // load script
         await new Promise<void>((resolve, reject) => {
           const script = document.createElement('script');
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
           script.async = true;
           script.onload = () => resolve();
           script.onerror = () => reject();
           document.head.appendChild(script);
         });
       }
-      const google = (window as any).google;
-      const center = { lat: locations[0].lat, lng: locations[0].lng };
+      const L = (window as any).L;
+      const center = [locations[0].lat, locations[0].lng];
       if (!mapInstanceRef.current && mapRef.current) {
-        mapInstanceRef.current = new google.maps.Map(mapRef.current, { center, zoom: 12 });
+        mapInstanceRef.current = L.map(mapRef.current).setView(center, 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(mapInstanceRef.current);
       }
       const map = mapInstanceRef.current;
       // clear existing markers
-      (map.markers || []).forEach((m: any) => m.setMap(null));
-      map.markers = [];
+      if (map._markers) {
+        map._markers.forEach((m: any) => m.remove());
+      }
+      map._markers = [];
       locations.forEach((l) => {
-        const m = new google.maps.Marker({ position: { lat: l.lat, lng: l.lng }, map, title: l.username });
-        const infow = new google.maps.InfoWindow({ content: `<div><strong>${l.username}</strong><div>${new Date(l.timestamp).toLocaleString()}</div></div>` });
-        m.addListener('click', () => infow.open(map, m));
-        map.markers.push(m);
+        const marker = (window as any).L.marker([l.lat, l.lng]).addTo(map).bindPopup(`<strong>${l.username}</strong><div>${new Date(l.timestamp).toLocaleString()}</div>`);
+        map._markers.push(marker);
       });
-      if (locations.length === 1) map.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
+      if (locations.length === 1) map.setView([locations[0].lat, locations[0].lng], 12);
       else {
-        const bounds = new google.maps.LatLngBounds();
-        locations.forEach((l) => bounds.extend({ lat: l.lat, lng: l.lng }));
+        const bounds = (window as any).L.latLngBounds(locations.map((l: any) => [l.lat, l.lng]));
         map.fitBounds(bounds);
       }
     };
-    loadMap().catch(() => {
-      // ignore map load errors
-    });
-  }, [apiKey, locations]);
+    loadLeaflet().catch(() => {});
+  }, [locations]);
 
-  const handleAdminLogin = (user: string, pass: string) => {
-    const basic = 'Basic ' + btoa(`${user}:${pass}`);
-    sessionStorage.setItem('admin_auth', basic);
-    setAuthHeader(basic);
-    // refetch data
-    window.location.reload();
-  };
-
-  const handleSetApiKey = (key: string) => {
-    sessionStorage.setItem('GMAPS_API_KEY', key);
-    setApiKey(key);
+  const handleAdminLogin = async (user: string, pass: string) => {
+    try {
+      const res = await fetch('http://localhost:4000/api/admin/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ user, pass }) });
+      if (!res.ok) throw new Error('auth failed');
+      const json = await res.json();
+      const token = json.token;
+      const bearer = 'Bearer ' + token;
+      sessionStorage.setItem('admin_auth', bearer);
+      setAuthHeader(bearer);
+      window.location.reload();
+    } catch (e) {
+      alert('Admin authentication failed');
+    }
   };
 
   return (
@@ -146,10 +154,7 @@ const AdminDashboard = () => {
                 <AdminLogin onLogin={handleAdminLogin} />
               </div>
             )}
-            <div style={{ marginBottom: '.5rem' }}>
-              <label>Google Maps API Key: </label>
-              <input style={{ width: 360 }} defaultValue={apiKey || ''} onBlur={(e) => handleSetApiKey(e.currentTarget.value)} placeholder="Enter Google Maps API key and blur to save" />
-            </div>
+            
             <div ref={mapRef} id="admin-map" style={{ height: 400, width: '100%', marginBottom: '.5rem' }} />
             {locations.length === 0 && <p>No user locations available.</p>}
             {locations.map((l) => (

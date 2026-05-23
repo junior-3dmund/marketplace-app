@@ -2,10 +2,12 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 
 const DATA_FILE = path.join(__dirname, 'data.json');
 const ADMIN_USER = process.env.ADMIN_USER || 'admin@novamart.com';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'NovaMart@12';
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 const app = express();
 app.use(cors());
@@ -26,12 +28,26 @@ function writeData(data) {
 
 function requireAdmin(req, res, next) {
   const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Basic ')) return res.status(401).send('Unauthorized');
-  const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
-  const [user, pass] = creds.split(':');
-  if (user === ADMIN_USER && pass === ADMIN_PASS) return next();
-  return res.status(403).send('Forbidden');
+  if (!auth || !auth.startsWith('Bearer ')) return res.status(401).send('Unauthorized');
+  const token = auth.split(' ')[1];
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    if (payload && payload.role === 'admin') return next();
+    return res.status(403).send('Forbidden');
+  } catch (e) {
+    return res.status(401).send('Invalid token');
+  }
 }
+
+// Admin login -> issues JWT
+app.post('/api/admin/login', (req, res) => {
+  const { user, pass } = req.body || {};
+  if (user === ADMIN_USER && pass === ADMIN_PASS) {
+    const token = jwt.sign({ sub: user, role: 'admin' }, JWT_SECRET, { expiresIn: '8h' });
+    return res.json({ token });
+  }
+  return res.status(401).json({ error: 'invalid_credentials' });
+});
 
 // Locations
 app.get('/api/locations', requireAdmin, (req, res) => {
