@@ -5,8 +5,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 
 const DATA_FILE = path.join(__dirname, 'data.json');
-const ADMIN_USER = process.env.ADMIN_USER || 'admin@novamart.com';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'NovaMart@12';
+const ADMIN_PIN = process.env.ADMIN_PIN || '1406';
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 const app = express();
@@ -41,9 +40,9 @@ function requireAdmin(req, res, next) {
 
 // Admin login -> issues JWT
 app.post('/api/admin/login', (req, res) => {
-  const { user, pass } = req.body || {};
-  if (user === ADMIN_USER && pass === ADMIN_PASS) {
-    const token = jwt.sign({ sub: user, role: 'admin' }, JWT_SECRET, { expiresIn: '8h' });
+  const { pin } = req.body || {};
+  if (String(pin) === String(ADMIN_PIN)) {
+    const token = jwt.sign({ sub: 'admin', role: 'admin' }, JWT_SECRET, { expiresIn: '8h' });
     return res.json({ token });
   }
   return res.status(401).json({ error: 'invalid_credentials' });
