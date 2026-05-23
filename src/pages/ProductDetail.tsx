@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProducts } from '../hooks/useProducts';
+import { useCart } from '../context/CartContext';
 
 const ProductDetail = () => {
   const navigate = useNavigate();
@@ -46,6 +47,8 @@ const ProductDetail = () => {
     );
   }
 
+  const { add } = useCart();
+
   return (
     <main className="product-detail-page">
       <section className="product-detail-card">
@@ -68,6 +71,9 @@ const ProductDetail = () => {
             </div>
           </div>
           <div className="detail-actions">
+            <button className="btn" type="button" onClick={() => add(product)}>
+              Add to cart
+            </button>
             <button className="btn" type="button">Contact Seller</button>
             <button className="btn btn-secondary" type="button" onClick={() => navigate(-1)}>
               Back
