@@ -1,12 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
+  const [authHeader, setAuthHeader] = useState<string | null>(sessionStorage.getItem('admin_auth'));
+  const [apiKey, setApiKey] = useState<string | null>(sessionStorage.getItem('GMAPS_API_KEY'));
+  const mapRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<any>(null);
 
   useEffect(() => {
+    let mounted = true;
     try {
       const u = localStorage.getItem('marketplace_users');
       setUsers(u ? JSON.parse(u) : []);
@@ -19,19 +24,94 @@ const AdminDashboard = () => {
     } catch {
       setTransactions([]);
     }
-    try {
-      const l = localStorage.getItem('user_locations');
-      setLocations(l ? JSON.parse(l) : []);
-    } catch {
-      setLocations([]);
-    }
-    try {
-      const m = localStorage.getItem('messages');
-      setMessages(m ? JSON.parse(m) : []);
-    } catch {
-      setMessages([]);
-    }
+    (async () => {
+      try {
+        // fetch locations (admin-protected)
+        const headers: any = {};
+        if (authHeader) headers.authorization = authHeader;
+        const res = await fetch('http://localhost:4000/api/locations', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted) setLocations(data || []);
+        } else {
+          const l = localStorage.getItem('user_locations');
+          if (mounted) setLocations(l ? JSON.parse(l) : []);
+        }
+      } catch {
+        const l = localStorage.getItem('user_locations');
+        if (mounted) setLocations(l ? JSON.parse(l) : []);
+      }
+
+      try {
+        const res2 = await fetch('http://localhost:4000/api/messages', { headers });
+        if (res2.ok) {
+          const data2 = await res2.json();
+          if (mounted) setMessages(data2 || []);
+        } else {
+          const m = localStorage.getItem('messages');
+          if (mounted) setMessages(m ? JSON.parse(m) : []);
+        }
+      } catch {
+        const m = localStorage.getItem('messages');
+        if (mounted) setMessages(m ? JSON.parse(m) : []);
+      }
+    })();
+    return () => { mounted = false };
   }, []);
+
+  useEffect(() => {
+    // initialize map when locations or apiKey change
+    if (!apiKey || !locations || locations.length === 0) return;
+    const loadMap = async () => {
+      if (!(window as any).google) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject();
+          document.head.appendChild(script);
+        });
+      }
+      const google = (window as any).google;
+      const center = { lat: locations[0].lat, lng: locations[0].lng };
+      if (!mapInstanceRef.current && mapRef.current) {
+        mapInstanceRef.current = new google.maps.Map(mapRef.current, { center, zoom: 12 });
+      }
+      const map = mapInstanceRef.current;
+      // clear existing markers
+      (map.markers || []).forEach((m: any) => m.setMap(null));
+      map.markers = [];
+      locations.forEach((l) => {
+        const m = new google.maps.Marker({ position: { lat: l.lat, lng: l.lng }, map, title: l.username });
+        const infow = new google.maps.InfoWindow({ content: `<div><strong>${l.username}</strong><div>${new Date(l.timestamp).toLocaleString()}</div></div>` });
+        m.addListener('click', () => infow.open(map, m));
+        map.markers.push(m);
+      });
+      if (locations.length === 1) map.setCenter({ lat: locations[0].lat, lng: locations[0].lng });
+      else {
+        const bounds = new google.maps.LatLngBounds();
+        locations.forEach((l) => bounds.extend({ lat: l.lat, lng: l.lng }));
+        map.fitBounds(bounds);
+      }
+    };
+    loadMap().catch(() => {
+      // ignore map load errors
+    });
+  }, [apiKey, locations]);
+
+  const handleAdminLogin = (user: string, pass: string) => {
+    const basic = 'Basic ' + btoa(`${user}:${pass}`);
+    sessionStorage.setItem('admin_auth', basic);
+    setAuthHeader(basic);
+    // refetch data
+    window.location.reload();
+  };
+
+  const handleSetApiKey = (key: string) => {
+    sessionStorage.setItem('GMAPS_API_KEY', key);
+    setApiKey(key);
+  };
 
   return (
     <main>
@@ -60,16 +140,27 @@ const AdminDashboard = () => {
 
         <div style={{ marginBottom: '1rem' }}>
           <h3>User Locations</h3>
-          {locations.length === 0 && <p>No user locations available.</p>}
-          {locations.map((l) => (
-            <div key={l.username} style={{ padding: '.5rem', borderBottom: '1px solid #eee' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <strong>{l.username}</strong>
-                <span>{new Date(l.timestamp).toLocaleString()}</span>
+            {!authHeader && (
+              <div style={{ marginBottom: '.5rem' }}>
+                <p>Admin authentication required to fetch live locations from server.</p>
+                <AdminLogin onLogin={handleAdminLogin} />
               </div>
-              <div>Lat: {l.lat.toFixed(5)} — Lng: {l.lng.toFixed(5)} — accuracy: {l.accuracy}m</div>
+            )}
+            <div style={{ marginBottom: '.5rem' }}>
+              <label>Google Maps API Key: </label>
+              <input style={{ width: 360 }} defaultValue={apiKey || ''} onBlur={(e) => handleSetApiKey(e.currentTarget.value)} placeholder="Enter Google Maps API key and blur to save" />
             </div>
-          ))}
+            <div ref={mapRef} id="admin-map" style={{ height: 400, width: '100%', marginBottom: '.5rem' }} />
+            {locations.length === 0 && <p>No user locations available.</p>}
+            {locations.map((l) => (
+              <div key={l.username} style={{ padding: '.5rem', borderBottom: '1px solid #eee' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <strong>{l.username}</strong>
+                  <span>{new Date(l.timestamp).toLocaleString()}</span>
+                </div>
+                <div>Lat: {l.lat.toFixed(5)} — Lng: {l.lng.toFixed(5)} — accuracy: {l.accuracy}m</div>
+              </div>
+            ))}
         </div>
 
         <div style={{ marginBottom: '1rem' }}>
@@ -131,6 +222,22 @@ function ReplyBox({ recipient, onSend }: { recipient: string; onSend: (t: string
       <textarea rows={2} style={{ width: '100%' }} value={text} onChange={(e) => setText(e.target.value)} />
       <div style={{ display: 'flex', gap: '.5rem', marginTop: '.25rem' }}>
         <button className="btn" onClick={() => { if (text) { onSend(text); setText(''); } }}>Send</button>
+      </div>
+    </div>
+  );
+}
+
+function AdminLogin({ onLogin }: { onLogin: (u: string, p: string) => void }) {
+  const [user, setUser] = useState('admin@novamart.com');
+  const [pass, setPass] = useState('');
+  return (
+    <div style={{ padding: '.5rem', border: '1px solid #eee' }}>
+      <div style={{ display: 'flex', gap: '.5rem', marginBottom: '.5rem' }}>
+        <input value={user} onChange={(e) => setUser(e.target.value)} style={{ width: 300 }} />
+        <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} style={{ width: 300 }} placeholder="admin password" />
+      </div>
+      <div>
+        <button className="btn" onClick={() => onLogin(user, pass)}>Authenticate</button>
       </div>
     </div>
   );

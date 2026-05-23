@@ -29,14 +29,6 @@ const writeUsers = (users: User[]) => {
       // create the Nova Mart admin account
       users.push({ username: 'admin', email: 'admin@novamart.com', password: 'NovaMart@12', role: 'admin' });
       writeUsers(users);
-    } else {
-      // ensure admin credentials match requested admin email/password
-      const adm = users.find((u) => u.role === 'admin');
-      if (adm) {
-        adm.email = 'admin@novamart.com';
-        adm.password = 'NovaMart@12';
-        writeUsers(users);
-      }
     }
   } catch {
     // ignore

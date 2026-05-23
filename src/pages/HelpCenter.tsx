@@ -7,29 +7,50 @@ const HelpCenter = () => {
   const [messages, setMessages] = useState<any[]>([]);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('messages');
-      setMessages(raw ? JSON.parse(raw) : []);
-    } catch {
-      setMessages([]);
-    }
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch('http://localhost:4000/api/messages');
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted) setMessages(data || []);
+          return;
+        }
+      } catch {}
+      try {
+        const raw = localStorage.getItem('messages');
+        if (mounted) setMessages(raw ? JSON.parse(raw) : []);
+      } catch {
+        if (mounted) setMessages([]);
+      }
+    })();
+    return () => { mounted = false };
   }, []);
 
   const send = () => {
     if (!current) return;
-    const raw = localStorage.getItem('messages');
-    const all = raw ? JSON.parse(raw) : [];
-    const msg = {
-      id: `m_${Date.now()}`,
-      from: current.username,
-      to: 'admin',
-      text,
-      date: new Date().toISOString()
-    };
-    all.push(msg);
-    localStorage.setItem('messages', JSON.stringify(all));
-    setMessages(all);
-    setText('');
+    const msg = { from: current.username, to: 'admin', text, date: new Date().toISOString() };
+    (async () => {
+      try {
+        const res = await fetch('http://localhost:4000/api/messages', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(msg) });
+        if (res.ok) {
+          // attempt to refresh from server (admin-protected) — but we'll append locally
+          setMessages((s) => [...s, { id: `m_${Date.now()}`, ...msg }]);
+          setText('');
+          return;
+        }
+      } catch (e) {}
+      // fallback to localStorage
+      try {
+        const raw = localStorage.getItem('messages');
+        const all = raw ? JSON.parse(raw) : [];
+        const stored = { id: `m_${Date.now()}`, ...msg };
+        all.push(stored);
+        localStorage.setItem('messages', JSON.stringify(all));
+        setMessages(all);
+        setText('');
+      } catch {}
+    })();
   };
 
   const convo = current ? messages.filter(m => m.from === current.username || m.to === current.username) : [];
